@@ -637,10 +637,17 @@
 
                 let firebaseConfig;
                 try {
+                    // Essayer d'abord le JSON standard
                     firebaseConfig = JSON.parse(configText);
                 } catch (e) {
-                    alert('❌ Configuration JSON invalide. Vérifiez la syntaxe.');
-                    return;
+                    try {
+                        // Si ça échoue, essayer le format JavaScript (sans guillemets sur les clés)
+                        const jsConfig = configText.replace(/(\w+):/g, '"$1":');
+                        firebaseConfig = JSON.parse(jsConfig);
+                    } catch (e2) {
+                        alert('❌ Configuration invalide. Utilisez soit du JSON valide avec guillemets, soit le format JavaScript direct de Firebase.');
+                        return;
+                    }
                 }
 
                 // Vérifier les champs requis
@@ -716,38 +723,58 @@
 
         // Sauvegarder dans Firebase
         async function saveToFirebase(restaurant) {
-            if (!db || !storage) return;
+            if (!db || !storage) {
+                console.log('Firebase non connecté, skip sauvegarde');
+                return;
+            }
             
             try {
+                console.log('🔥 Début sauvegarde Firebase...');
+                
+                // Créer une copie pour éviter de modifier l'original
+                const restaurantCopy = JSON.parse(JSON.stringify(restaurant));
+                
                 // Upload des photos si présentes
-                const lastVisit = restaurant.visits[restaurant.visits.length - 1];
+                const lastVisit = restaurantCopy.visits[restaurantCopy.visits.length - 1];
                 if (lastVisit.photos && lastVisit.photos.length > 0) {
+                    console.log(`📸 Upload de ${lastVisit.photos.length} photos...`);
                     const uploadedPhotos = [];
                     
                     for (let i = 0; i < lastVisit.photos.length; i++) {
                         const photo = lastVisit.photos[i];
+                        console.log(`📸 Upload photo ${i + 1}/${lastVisit.photos.length}...`);
+                        
                         if (photo.startsWith('blob:')) {
-                            const photoBlob = await fetch(photo).then(r => r.blob());
-                            const photoRef = storage.ref(`photos/${restaurant.id}_${Date.now()}_${i}.jpg`);
-                            const photoSnapshot = await photoRef.put(photoBlob);
-                            const photoURL = await photoSnapshot.ref.getDownloadURL();
-                            uploadedPhotos.push(photoURL);
+                            try {
+                                const photoBlob = await fetch(photo).then(r => r.blob());
+                                const photoRef = storage.ref(`photos/${restaurantCopy.id}_${Date.now()}_${i}.jpg`);
+                                const photoSnapshot = await photoRef.put(photoBlob);
+                                const photoURL = await photoSnapshot.ref.getDownloadURL();
+                                uploadedPhotos.push(photoURL);
+                                console.log(`✅ Photo ${i + 1} uploadée`);
+                            } catch (photoError) {
+                                console.warn(`⚠️ Erreur upload photo ${i + 1}:`, photoError);
+                                // Continue sans cette photo
+                            }
                         } else {
                             uploadedPhotos.push(photo);
                         }
                     }
                     
                     lastVisit.photos = uploadedPhotos;
+                    console.log(`✅ ${uploadedPhotos.length} photos sauvegardées`);
                 }
                 
                 // Sauvegarder le restaurant
-                const docRef = await db.collection('restaurants').add(restaurant);
+                console.log('💾 Sauvegarde document Firestore...');
+                const docRef = await db.collection('restaurants').add(restaurantCopy);
                 restaurant.firebaseId = docRef.id;
                 
-                console.log('✅ Restaurant sauvegardé dans Firebase');
+                console.log('✅ Restaurant sauvegardé dans Firebase avec ID:', docRef.id);
+                
             } catch (error) {
-                console.error('Erreur sauvegarde Firebase:', error);
-                alert('⚠️ Erreur lors de la sauvegarde dans Firebase, mais le restaurant a été ajouté localement.');
+                console.error('❌ Erreur sauvegarde Firebase:', error);
+                throw new Error(`Firebase: ${error.message}`);
             }
         }
 
@@ -859,6 +886,8 @@
             const dishName = document.getElementById('dish-name').value.trim();
             const notes = document.getElementById('visit-notes').value.trim();
 
+            console.log('🚀 Début ajout restaurant:', { name, cuisine, address, dishName, currentRating, photos: currentPhotos.length });
+
             if (!name || !address || !dishName || currentRating === 0) {
                 alert('❌ Veuillez remplir tous les champs obligatoires (*) et noter le plat');
                 return;
@@ -870,12 +899,14 @@
             addBtn.textContent = '⏳ Ajout en cours...';
 
             try {
+                console.log('📍 Génération coordonnées...');
                 // Coordonnées aléatoires en France
                 const coords = [
                     46.2276 + (Math.random() - 0.5) * 8, 
                     2.2137 + (Math.random() - 0.5) * 8
                 ];
 
+                console.log('🏪 Création objet restaurant...');
                 const restaurant = {
                     id: Date.now(),
                     name: name,
@@ -886,29 +917,52 @@
                         date: new Date().toLocaleDateString('fr-FR'),
                         dish: dishName,
                         rating: currentRating,
-                        photos: [...currentPhotos],
+                        photos: currentPhotos ? [...currentPhotos] : [],
                         notes: notes
                     }],
                     totalVisits: 1,
                     lastVisit: new Date().toLocaleDateString('fr-FR')
                 };
 
+                console.log('📦 Ajout à la liste locale...');
                 restaurants.push(restaurant);
 
-                // Sauvegarder dans Firebase si connecté
-                if (db) {
-                    await saveToFirebase(restaurant);
+                console.log('🔥 Vérification Firebase...');
+                // Sauvegarder dans Firebase si connecté (avec timeout)
+                if (db && storage) {
+                    console.log('☁️ Sauvegarde Firebase...');
+                    try {
+                        const savePromise = saveToFirebase(restaurant);
+                        const timeoutPromise = new Promise((_, reject) => 
+                            setTimeout(() => reject(new Error('Timeout Firebase')), 10000)
+                        );
+                        await Promise.race([savePromise, timeoutPromise]);
+                        console.log('✅ Sauvegarde Firebase réussie');
+                    } catch (firebaseError) {
+                        console.warn('⚠️ Erreur Firebase (continue en local):', firebaseError);
+                        // Continue même si Firebase échoue
+                    }
+                } else {
+                    console.log('💾 Sauvegarde locale uniquement');
                 }
 
+                console.log('🔄 Mise à jour affichages...');
                 updateDisplays();
+                
+                console.log('🧹 Nettoyage formulaire...');
                 clearForm();
+                
+                console.log('📋 Basculement vers liste...');
                 switchTab('list');
+                
+                console.log('✅ Ajout terminé avec succès');
                 alert('✅ Restaurant ajouté avec succès ! 🎉');
 
             } catch (error) {
-                console.error('Erreur ajout restaurant:', error);
-                alert('❌ Erreur lors de l\'ajout du restaurant');
+                console.error('❌ Erreur critique ajout restaurant:', error);
+                alert(`❌ Erreur lors de l'ajout: ${error.message}`);
             } finally {
+                console.log('🔄 Réactivation du bouton...');
                 addBtn.disabled = false;
                 addBtn.textContent = '✨ Ajouter le restaurant';
             }
