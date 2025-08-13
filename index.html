@@ -279,9 +279,16 @@
             height: 80px;
             object-fit: cover;
             border-radius: 12px;
-            margin-top: 0.75rem;
+            margin: 0.25rem;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             border: 2px solid white;
+        }
+
+        .photos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 0.5rem;
+            margin-top: 1rem;
         }
 
         .modal {
@@ -495,9 +502,10 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="dish-photo">Photo du plat</label>
-                    <input type="file" id="dish-photo" accept="image/*" onchange="previewPhoto()">
-                    <div id="photo-preview" style="margin-top: 1rem;"></div>
+                    <label for="dish-photos">Photos du plat</label>
+                    <input type="file" id="dish-photos" accept="image/*" multiple onchange="previewPhotos()">
+                    <p style="color: #64748b; font-size: 0.85rem; margin-top: 0.5rem;">Vous pouvez sélectionner plusieurs photos</p>
+                    <div id="photos-preview" class="photos-grid"></div>
                 </div>
 
                 <div class="form-group">
@@ -520,16 +528,19 @@
                 <div class="form-group">
                     <label for="firebase-config">Configuration Firebase (JSON) *</label>
                     <textarea id="firebase-config" rows="8" placeholder='{
-  "apiKey": "votre-api-key",
-  "authDomain": "votre-projet.firebaseapp.com",
-  "projectId": "votre-projet-id",
-  "storageBucket": "votre-projet.appspot.com",
-  "messagingSenderId": "123456789",
-  "appId": "votre-app-id"
+  "apiKey": "AIzaSyCGjBqWqI-EjNiTdfNA9CL05u9-sqjcXXI",
+  "authDomain": "restomemo-68503.firebaseapp.com",
+  "projectId": "restomemo-68503",
+  "storageBucket": "restomemo-68503.firebasestorage.app",
+  "messagingSenderId": "361523951444",
+  "appId": "1:361523951444:web:05265ab6f3b5b18f997ac1"
 }'></textarea>
                 </div>
                 
-                <button class="btn" onclick="initFirebase()">🔗 Connecter à Firebase</button>
+                <div class="backup-buttons">
+                    <button class="btn" onclick="initFirebase()">🔗 Connecter à Firebase</button>
+                    <button class="btn-secondary" onclick="clearFirebaseConfig()">🗑️ Effacer config</button>
+                </div>
             </div>
 
             <div class="backup-section">
@@ -566,8 +577,6 @@
 
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-    
-    <!-- Firebase SDK v9 avec compatibilité -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
@@ -576,14 +585,49 @@
         // Variables globales
         let restaurants = [];
         let currentRating = 0;
-        let currentPhotoUrl = null;
+        let currentPhotos = [];
         let map = null;
         let db = null;
         let storage = null;
         let firebaseApp = null;
 
-        // Configuration Firebase
-        function initFirebase() {
+        // Gestion localStorage pour sauvegarder Firebase config
+        function saveFirebaseConfig(config) {
+            try {
+                localStorage.setItem('firebase-config', JSON.stringify(config));
+            } catch (e) {
+                console.log('LocalStorage non disponible');
+            }
+        }
+
+        function loadFirebaseConfig() {
+            try {
+                const saved = localStorage.getItem('firebase-config');
+                if (saved) {
+                    const config = JSON.parse(saved);
+                    document.getElementById('firebase-config').value = JSON.stringify(config, null, 2);
+                    return config;
+                }
+            } catch (e) {
+                console.log('Erreur chargement config Firebase');
+            }
+            return null;
+        }
+
+        function clearFirebaseConfig() {
+            try {
+                localStorage.removeItem('firebase-config');
+                document.getElementById('firebase-config').value = '';
+                document.getElementById('sync-status').className = 'sync-status disconnected';
+                document.getElementById('sync-status').textContent = '🔴 Hors ligne';
+                alert('✅ Configuration Firebase effacée !');
+            } catch (e) {
+                console.log('Erreur suppression config');
+            }
+        }
+
+        // Configuration Firebase (version compatible)
+        async function initFirebase() {
             try {
                 const configText = document.getElementById('firebase-config').value.trim();
                 if (!configText) {
@@ -591,24 +635,56 @@
                     return;
                 }
 
-                const firebaseConfig = JSON.parse(configText);
+                let firebaseConfig;
+                try {
+                    firebaseConfig = JSON.parse(configText);
+                } catch (e) {
+                    alert('❌ Configuration JSON invalide. Vérifiez la syntaxe.');
+                    return;
+                }
+
+                // Vérifier les champs requis
+                const requiredFields = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'];
+                const missingFields = requiredFields.filter(field => !firebaseConfig[field]);
+                if (missingFields.length > 0) {
+                    alert(`❌ Champs manquants: ${missingFields.join(', ')}`);
+                    return;
+                }
                 
-                // Initialiser Firebase avec la méthode de compatibilité
-                firebaseApp = firebase.initializeApp(firebaseConfig);
+                // Initialiser Firebase avec la version compat
+                if (!firebaseApp) {
+                    firebaseApp = firebase.initializeApp(firebaseConfig);
+                }
                 db = firebase.firestore();
                 storage = firebase.storage();
 
+                // Tester la connexion
+                await db.collection('restaurants').limit(1).get();
+                
+                // Sauvegarder la config
+                saveFirebaseConfig(firebaseConfig);
+                
                 document.getElementById('sync-status').className = 'sync-status connected';
                 document.getElementById('sync-status').textContent = '🟢 Connecté';
                 
                 // Charger les données depuis Firebase
-                loadFromFirebase();
+                await loadFromFirebase();
                 
                 alert('✅ Firebase connecté avec succès !');
                 
             } catch (error) {
                 console.error('Erreur Firebase:', error);
-                alert('❌ Erreur de connexion Firebase. Vérifiez votre configuration.');
+                let errorMsg = 'Erreur de connexion Firebase.';
+                
+                if (error.code === 'permission-denied') {
+                    errorMsg = '❌ Erreur: Permissions Firebase insuffisantes. Vérifiez vos règles Firestore.';
+                } else if (error.code === 'invalid-api-key') {
+                    errorMsg = '❌ Erreur: Clé API Firebase invalide.';
+                } else if (error.message.includes('Failed to fetch')) {
+                    errorMsg = '❌ Erreur: Impossible de contacter Firebase. Vérifiez votre connexion internet.';
+                }
+                
+                alert(errorMsg);
             }
         }
 
@@ -618,17 +694,21 @@
             
             try {
                 const querySnapshot = await db.collection('restaurants').get();
-                restaurants = [];
+                const loadedRestaurants = [];
                 
                 querySnapshot.forEach((doc) => {
-                    restaurants.push({
+                    loadedRestaurants.push({
                         firebaseId: doc.id,
                         ...doc.data()
                     });
                 });
                 
-                updateDisplays();
-                console.log('✅ Données chargées depuis Firebase');
+                if (loadedRestaurants.length > 0) {
+                    restaurants = loadedRestaurants;
+                    updateDisplays();
+                }
+                
+                console.log('✅ Données chargées depuis Firebase:', loadedRestaurants.length, 'restaurants');
             } catch (error) {
                 console.error('Erreur chargement Firebase:', error);
             }
@@ -636,17 +716,28 @@
 
         // Sauvegarder dans Firebase
         async function saveToFirebase(restaurant) {
-            if (!db) return;
+            if (!db || !storage) return;
             
             try {
-                // Upload de la photo si présente
-                if (restaurant.visits[restaurant.visits.length - 1].photo && restaurant.visits[restaurant.visits.length - 1].photo.startsWith('blob:')) {
-                    const response = await fetch(restaurant.visits[restaurant.visits.length - 1].photo);
-                    const photoBlob = await response.blob();
-                    const photoRef = storage.ref(`photos/${restaurant.id}_${Date.now()}.jpg`);
-                    const photoSnapshot = await photoRef.put(photoBlob);
-                    const photoURL = await photoSnapshot.ref.getDownloadURL();
-                    restaurant.visits[restaurant.visits.length - 1].photo = photoURL;
+                // Upload des photos si présentes
+                const lastVisit = restaurant.visits[restaurant.visits.length - 1];
+                if (lastVisit.photos && lastVisit.photos.length > 0) {
+                    const uploadedPhotos = [];
+                    
+                    for (let i = 0; i < lastVisit.photos.length; i++) {
+                        const photo = lastVisit.photos[i];
+                        if (photo.startsWith('blob:')) {
+                            const photoBlob = await fetch(photo).then(r => r.blob());
+                            const photoRef = storage.ref(`photos/${restaurant.id}_${Date.now()}_${i}.jpg`);
+                            const photoSnapshot = await photoRef.put(photoBlob);
+                            const photoURL = await photoSnapshot.ref.getDownloadURL();
+                            uploadedPhotos.push(photoURL);
+                        } else {
+                            uploadedPhotos.push(photo);
+                        }
+                    }
+                    
+                    lastVisit.photos = uploadedPhotos;
                 }
                 
                 // Sauvegarder le restaurant
@@ -656,10 +747,11 @@
                 console.log('✅ Restaurant sauvegardé dans Firebase');
             } catch (error) {
                 console.error('Erreur sauvegarde Firebase:', error);
+                alert('⚠️ Erreur lors de la sauvegarde dans Firebase, mais le restaurant a été ajouté localement.');
             }
         }
 
-        // Export des données
+        // Export/Import des données
         function exportData() {
             const dataStr = JSON.stringify(restaurants, null, 2);
             const dataBlob = new Blob([dataStr], {type: 'application/json'});
@@ -674,7 +766,6 @@
             alert('✅ Données exportées !');
         }
 
-        // Import des données
         function importData() {
             const file = document.getElementById('import-file').files[0];
             if (!file) return;
@@ -735,21 +826,29 @@
             });
         }
 
-        function previewPhoto() {
-            const file = document.getElementById('dish-photo').files[0];
-            const previewDiv = document.getElementById('photo-preview');
+        function previewPhotos() {
+            const files = document.getElementById('dish-photos').files;
+            const previewDiv = document.getElementById('photos-preview');
             
-            if (file) {
-                currentPhotoUrl = URL.createObjectURL(file);
-                previewDiv.innerHTML = `
-                    <div style="text-align: center;">
-                        <img src="${currentPhotoUrl}" style="max-width: 200px; max-height: 200px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" alt="Aperçu">
-                        <p style="color: #64748b; font-size: 0.9rem; margin-top: 0.5rem;">📸 Photo sélectionnée</p>
-                    </div>
-                `;
-            } else {
-                previewDiv.innerHTML = '';
-                currentPhotoUrl = null;
+            currentPhotos = [];
+            previewDiv.innerHTML = '';
+            
+            if (files.length > 0) {
+                Array.from(files).forEach((file, index) => {
+                    const photoUrl = URL.createObjectURL(file);
+                    currentPhotos.push(photoUrl);
+                    
+                    const img = document.createElement('img');
+                    img.src = photoUrl;
+                    img.className = 'photo-preview';
+                    img.alt = `Photo ${index + 1}`;
+                    previewDiv.appendChild(img);
+                });
+                
+                const infoText = document.createElement('p');
+                infoText.style.cssText = 'color: #64748b; font-size: 0.9rem; margin-top: 0.5rem; text-align: center;';
+                infoText.textContent = `📸 ${files.length} photo(s) sélectionnée(s)`;
+                previewDiv.appendChild(infoText);
             }
         }
 
@@ -787,7 +886,7 @@
                         date: new Date().toLocaleDateString('fr-FR'),
                         dish: dishName,
                         rating: currentRating,
-                        photo: currentPhotoUrl,
+                        photos: [...currentPhotos],
                         notes: notes
                     }],
                     totalVisits: 1,
@@ -815,7 +914,7 @@
             }
         }
 
-        // Ajouter tous les marqueurs sur la carte
+        // Gestion de la carte
         function addAllMarkersToMap() {
             if (!map) return;
             
@@ -868,7 +967,7 @@
 
             listContainer.innerHTML = restaurants.map(restaurant => {
                 const avgRating = restaurant.visits.reduce((sum, visit) => sum + visit.rating, 0) / restaurant.visits.length;
-                const latestDish = restaurant.visits[restaurant.visits.length - 1];
+                const latestVisit = restaurant.visits[restaurant.visits.length - 1];
                 
                 return `
                     <div class="restaurant-card" onclick="showRestaurantDetails(${restaurant.id})">
@@ -893,9 +992,17 @@
                         <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between;">
                             <div>
                                 <strong style="color: #1e293b;">Dernier plat:</strong>
-                                <div style="color: #64748b;">${latestDish.dish}</div>
+                                <div style="color: #64748b;">${latestVisit.dish}</div>
                             </div>
-                            ${latestDish.photo ? `<img src="${latestDish.photo}" class="photo-preview" alt="Photo du plat">` : '<div style="color: #94a3b8; font-size: 1.5rem;">📷</div>'}
+                            ${latestVisit.photos && latestVisit.photos.length > 0 ? 
+                                `<div class="photos-grid">
+                                    ${latestVisit.photos.slice(0, 2).map(photo => 
+                                        `<img src="${photo}" class="photo-preview" alt="Photo du plat">`
+                                    ).join('')}
+                                    ${latestVisit.photos.length > 2 ? `<div style="color: #94a3b8; font-size: 0.8rem; padding: 0.5rem;">+${latestVisit.photos.length - 2}</div>` : ''}
+                                </div>` : 
+                                '<div style="color: #94a3b8; font-size: 1.5rem;">📷</div>'
+                            }
                         </div>
                     </div>
                 `;
@@ -931,7 +1038,13 @@
                             <span style="color: #64748b;">(${visit.rating}/5)</span>
                         </div>
                         <div style="color: #64748b; font-size: 0.9rem; margin-bottom: 0.75rem;">📅 ${visit.date}</div>
-                        ${visit.photo ? `<img src="${visit.photo}" style="width: 100%; max-width: 300px; height: 200px; object-fit: cover; border-radius: 12px; margin: 0.75rem 0; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" alt="Photo du plat">` : ''}
+                        ${visit.photos && visit.photos.length > 0 ? `
+                            <div class="photos-grid" style="margin: 0.75rem 0;">
+                                ${visit.photos.map(photo => 
+                                    `<img src="${photo}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 12px; cursor: pointer;" alt="Photo du plat" onclick="window.open('${photo}', '_blank')">`
+                                ).join('')}
+                            </div>
+                        ` : ''}
                         ${visit.notes ? `<p style="margin-top: 0.75rem; font-style: italic; color: #475569; background: #f1f5f9; padding: 0.75rem; border-radius: 8px;">"${visit.notes}"</p>` : ''}
                     </div>
                 `;
@@ -950,11 +1063,11 @@
             document.getElementById('restaurant-cuisine').value = '';
             document.getElementById('restaurant-address').value = '';
             document.getElementById('dish-name').value = '';
-            document.getElementById('dish-photo').value = '';
+            document.getElementById('dish-photos').value = '';
             document.getElementById('visit-notes').value = '';
-            document.getElementById('photo-preview').innerHTML = '';
+            document.getElementById('photos-preview').innerHTML = '';
             currentRating = 0;
-            currentPhotoUrl = null;
+            currentPhotos = [];
             updateStarDisplay();
             document.getElementById('rating-text').textContent = 'Cliquez sur les étoiles pour noter';
         }
@@ -1010,7 +1123,7 @@
                                 date: "10/08/2025",
                                 dish: "Magret de canard aux figues",
                                 rating: 5,
-                                photo: null,
+                                photos: [],
                                 notes: "Excellent ! Cuisson parfaite du magret."
                             }
                         ],
@@ -1028,7 +1141,7 @@
                                 date: "05/08/2025",
                                 dish: "Plateau sashimi",
                                 rating: 4,
-                                photo: null,
+                                photos: [],
                                 notes: "Poisson très frais, présentation soignée."
                             }
                         ],
@@ -1040,34 +1153,35 @@
         }
 
         // Initialisation complète
-        function initApp() {
+        async function initApp() {
             console.log('🚀 Initialisation de l\'application...');
+            
+            // Charger les données d'exemple
             loadSampleData();
             
-            // Attendre que Leaflet soit chargé
-            if (typeof L !== 'undefined') {
-                initMap();
-            } else {
-                setTimeout(() => {
-                    if (typeof L !== 'undefined') {
-                        initMap();
-                    } else {
-                        document.getElementById('map-status').innerHTML = '<span style="color: #dc2626;">❌ Impossible de charger Leaflet</span>';
-                    }
-                }, 1000);
+            // Initialiser la carte
+            initMap();
+            
+            // Charger la config Firebase sauvegardée
+            const savedConfig = loadFirebaseConfig();
+            if (savedConfig) {
+                console.log('Config Firebase trouvée, tentative de connexion auto...');
+                try {
+                    await initFirebase();
+                } catch (e) {
+                    console.log('Connexion Firebase auto échouée, mode hors ligne');
+                }
             }
             
+            // Mettre à jour les affichages
             updateDisplays();
             updateStats();
+            
             console.log('✅ Application initialisée');
         }
 
-        // Lancement une fois le DOM chargé
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initApp);
-        } else {
-            initApp();
-        }
+        // Lancement au chargement de la page
+        document.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
 </html>
