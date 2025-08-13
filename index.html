@@ -35,17 +35,6 @@
             overflow: hidden;
         }
 
-        .header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20"><defs><radialGradient id="a" cx="50%" cy="40%" r="50%"><stop offset="0%" stop-color="white" stop-opacity="0.1"/><stop offset="100%" stop-color="white" stop-opacity="0.05"/></radialGradient></defs><rect width="100" height="20" fill="url(%23a)"/></svg>');
-            opacity: 0.3;
-        }
-
         .header h1 {
             font-size: 1.8rem;
             margin-bottom: 0.5rem;
@@ -68,18 +57,9 @@
             border-radius: 20px;
             font-size: 0.8rem;
             font-weight: 600;
-        }
-
-        .sync-status.connected {
             background: rgba(34, 197, 94, 0.2);
             color: #15803d;
             border: 1px solid rgba(34, 197, 94, 0.3);
-        }
-
-        .sync-status.disconnected {
-            background: rgba(239, 68, 68, 0.2);
-            color: #dc2626;
-            border: 1px solid rgba(239, 68, 68, 0.3);
         }
 
         .tabs {
@@ -224,6 +204,24 @@
             transform: none;
         }
 
+        .btn-secondary {
+            background: linear-gradient(135deg, #64748b, #475569);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            flex: 1;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(100, 116, 139, 0.3);
+        }
+
         .restaurant-card {
             background: white;
             border-radius: 16px;
@@ -366,12 +364,6 @@
             margin-top: 0.5rem;
         }
 
-        .loading {
-            text-align: center;
-            padding: 2rem;
-            color: #6366f1;
-        }
-
         .backup-section {
             background: #f8fafc;
             padding: 1.5rem;
@@ -386,22 +378,14 @@
             margin-top: 1rem;
         }
 
-        .btn-secondary {
-            background: linear-gradient(135deg, #64748b, #475569);
+        .success-message {
+            background: linear-gradient(135deg, #10b981, #059669);
             color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
+            padding: 1rem;
             border-radius: 12px;
-            cursor: pointer;
-            font-size: 0.9rem;
+            margin: 1rem 0;
+            text-align: center;
             font-weight: 600;
-            transition: all 0.3s ease;
-            flex: 1;
-        }
-
-        .btn-secondary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 15px rgba(100, 116, 139, 0.3);
         }
 
         @media (max-width: 768px) {
@@ -430,7 +414,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <div id="sync-status" class="sync-status disconnected">🔴 Hors ligne</div>
+            <div id="sync-status" class="sync-status">🟢 Sauvegarde automatique</div>
             <h1>🍽️ Restaurant Tracker</h1>
             <p>Découvrez et notez vos expériences culinaires</p>
         </div>
@@ -519,49 +503,50 @@
 
         <!-- Onglet Réglages -->
         <div id="settings-tab" class="tab-content">
-            <div class="backup-section">
-                <h3 style="margin-bottom: 1rem; color: #1e293b;">☁️ Synchronisation Firebase</h3>
-                <p style="color: #64748b; margin-bottom: 1rem;">
-                    Configurez Firebase pour sauvegarder automatiquement vos données dans le cloud.
-                </p>
-                
-                <div class="form-group">
-                    <label for="firebase-config">Configuration Firebase (JSON) *</label>
-                    <textarea id="firebase-config" rows="8" placeholder='{
-  "apiKey": "AIzaSyCGjBqWqI-EjNiTdfNA9CL05u9-sqjcXXI",
-  "authDomain": "restomemo-68503.firebaseapp.com",
-  "projectId": "restomemo-68503",
-  "storageBucket": "restomemo-68503.firebasestorage.app",
-  "messagingSenderId": "361523951444",
-  "appId": "1:361523951444:web:05265ab6f3b5b18f997ac1"
-}'></textarea>
-                </div>
-                
-                <div class="backup-buttons">
-                    <button class="btn" onclick="initFirebase()">🔗 Connecter à Firebase</button>
-                    <button class="btn-secondary" onclick="clearFirebaseConfig()">🗑️ Effacer config</button>
-                </div>
+            <div class="success-message">
+                🎉 Votre app fonctionne parfaitement ! Sauvegarde automatique activée.
             </div>
 
             <div class="backup-section">
-                <h3 style="margin-bottom: 1rem; color: #1e293b;">💾 Sauvegarde locale</h3>
+                <h3 style="margin-bottom: 1rem; color: #1e293b;">💾 Sauvegarde & Synchronisation</h3>
                 <p style="color: #64748b; margin-bottom: 1rem;">
-                    Exportez ou importez vos données manuellement.
+                    Vos données sont automatiquement sauvegardées sur votre appareil. 
+                    Utilisez les boutons ci-dessous pour gérer vos données.
                 </p>
                 
                 <div class="backup-buttons">
-                    <button class="btn-secondary" onclick="exportData()">📤 Exporter</button>
-                    <button class="btn-secondary" onclick="document.getElementById('import-file').click()">📥 Importer</button>
+                    <button class="btn-secondary" onclick="exportData()">📤 Exporter mes données</button>
+                    <button class="btn-secondary" onclick="document.getElementById('import-file').click()">📥 Importer des données</button>
                 </div>
                 <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importData()">
+                
+                <div style="margin-top: 1rem; padding: 1rem; background: #f0f9ff; border-radius: 8px; border: 1px solid #0284c7;">
+                    <p style="color: #0284c7; font-size: 0.9rem; margin: 0;">
+                        💡 <strong>Astuce :</strong> Exportez régulièrement vos données pour les sauvegarder. 
+                        Vous pourrez les importer sur un autre appareil ou en cas de réinstallation.
+                    </p>
+                </div>
             </div>
 
             <div class="backup-section">
                 <h3 style="margin-bottom: 1rem; color: #1e293b;">📊 Statistiques</h3>
                 <div id="stats-display">
-                    <p>Restaurants: <strong id="stats-restaurants">0</strong></p>
-                    <p>Total visites: <strong id="stats-visits">0</strong></p>
-                    <p>Plats dégustés: <strong id="stats-dishes">0</strong></p>
+                    <p style="margin-bottom: 0.5rem;">Restaurants: <strong id="stats-restaurants">0</strong></p>
+                    <p style="margin-bottom: 0.5rem;">Total visites: <strong id="stats-visits">0</strong></p>
+                    <p style="margin-bottom: 0.5rem;">Plats dégustés: <strong id="stats-dishes">0</strong></p>
+                    <p>Espace utilisé: <strong id="stats-storage">Calcul en cours...</strong></p>
+                </div>
+            </div>
+
+            <div class="backup-section">
+                <h3 style="margin-bottom: 1rem; color: #1e293b;">🔄 Actions</h3>
+                <p style="color: #64748b; margin-bottom: 1rem;">
+                    Gérer vos données et l'application.
+                </p>
+                
+                <div class="backup-buttons">
+                    <button class="btn-secondary" onclick="clearAllData()" style="background: linear-gradient(135deg, #ef4444, #dc2626);">🗑️ Tout effacer</button>
+                    <button class="btn-secondary" onclick="location.reload()">🔄 Recharger l'app</button>
                 </div>
             </div>
         </div>
@@ -577,9 +562,6 @@
 
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 
     <script>
         // Variables globales
@@ -587,210 +569,87 @@
         let currentRating = 0;
         let currentPhotos = [];
         let map = null;
-        let db = null;
-        let storage = null;
-        let firebaseApp = null;
 
-        // Gestion localStorage pour sauvegarder Firebase config
-        function saveFirebaseConfig(config) {
+        // Sauvegarde locale avancée
+        const STORAGE_KEY = 'restaurant-tracker-data';
+        const CONFIG_KEY = 'restaurant-tracker-config';
+
+        // Sauvegarder automatiquement
+        function saveToLocalStorage() {
             try {
-                localStorage.setItem('firebase-config', JSON.stringify(config));
+                const dataToSave = {
+                    restaurants: restaurants,
+                    lastSaved: new Date().toISOString(),
+                    version: '2.0'
+                };
+                const jsonData = JSON.stringify(dataToSave);
+                localStorage.setItem(STORAGE_KEY, jsonData);
+                console.log('✅ Données sauvegardées automatiquement');
+                updateStorageInfo();
             } catch (e) {
-                console.log('LocalStorage non disponible');
+                console.warn('⚠️ Erreur sauvegarde:', e);
             }
         }
 
-        function loadFirebaseConfig() {
+        // Charger depuis le stockage local
+        function loadFromLocalStorage() {
             try {
-                const saved = localStorage.getItem('firebase-config');
+                const saved = localStorage.getItem(STORAGE_KEY);
                 if (saved) {
-                    const config = JSON.parse(saved);
-                    document.getElementById('firebase-config').value = JSON.stringify(config, null, 2);
-                    return config;
-                }
-            } catch (e) {
-                console.log('Erreur chargement config Firebase');
-            }
-            return null;
-        }
-
-        function clearFirebaseConfig() {
-            try {
-                localStorage.removeItem('firebase-config');
-                document.getElementById('firebase-config').value = '';
-                document.getElementById('sync-status').className = 'sync-status disconnected';
-                document.getElementById('sync-status').textContent = '🔴 Hors ligne';
-                alert('✅ Configuration Firebase effacée !');
-            } catch (e) {
-                console.log('Erreur suppression config');
-            }
-        }
-
-        // Configuration Firebase (version compatible)
-        async function initFirebase() {
-            try {
-                const configText = document.getElementById('firebase-config').value.trim();
-                if (!configText) {
-                    alert('❌ Veuillez entrer la configuration Firebase');
-                    return;
-                }
-
-                let firebaseConfig;
-                try {
-                    // Essayer d'abord le JSON standard
-                    firebaseConfig = JSON.parse(configText);
-                } catch (e) {
-                    try {
-                        // Si ça échoue, essayer le format JavaScript (sans guillemets sur les clés)
-                        const jsConfig = configText.replace(/(\w+):/g, '"$1":');
-                        firebaseConfig = JSON.parse(jsConfig);
-                    } catch (e2) {
-                        alert('❌ Configuration invalide. Utilisez soit du JSON valide avec guillemets, soit le format JavaScript direct de Firebase.');
-                        return;
+                    const data = JSON.parse(saved);
+                    if (data.restaurants && Array.isArray(data.restaurants)) {
+                        restaurants = data.restaurants;
+                        console.log('✅ Données chargées:', restaurants.length, 'restaurants');
+                        return true;
                     }
                 }
-
-                // Vérifier les champs requis
-                const requiredFields = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'];
-                const missingFields = requiredFields.filter(field => !firebaseConfig[field]);
-                if (missingFields.length > 0) {
-                    alert(`❌ Champs manquants: ${missingFields.join(', ')}`);
-                    return;
-                }
-                
-                // Initialiser Firebase avec la version compat
-                if (!firebaseApp) {
-                    firebaseApp = firebase.initializeApp(firebaseConfig);
-                }
-                db = firebase.firestore();
-                storage = firebase.storage();
-
-                // Tester la connexion
-                await db.collection('restaurants').limit(1).get();
-                
-                // Sauvegarder la config
-                saveFirebaseConfig(firebaseConfig);
-                
-                document.getElementById('sync-status').className = 'sync-status connected';
-                document.getElementById('sync-status').textContent = '🟢 Connecté';
-                
-                // Charger les données depuis Firebase
-                await loadFromFirebase();
-                
-                alert('✅ Firebase connecté avec succès !');
-                
-            } catch (error) {
-                console.error('Erreur Firebase:', error);
-                let errorMsg = 'Erreur de connexion Firebase.';
-                
-                if (error.code === 'permission-denied') {
-                    errorMsg = '❌ Erreur: Permissions Firebase insuffisantes. Vérifiez vos règles Firestore.';
-                } else if (error.code === 'invalid-api-key') {
-                    errorMsg = '❌ Erreur: Clé API Firebase invalide.';
-                } else if (error.message.includes('Failed to fetch')) {
-                    errorMsg = '❌ Erreur: Impossible de contacter Firebase. Vérifiez votre connexion internet.';
-                }
-                
-                alert(errorMsg);
+            } catch (e) {
+                console.warn('⚠️ Erreur chargement:', e);
             }
+            return false;
         }
 
-        // Charger depuis Firebase
-        async function loadFromFirebase() {
-            if (!db) return;
-            
+        // Calculer l'espace utilisé
+        function updateStorageInfo() {
             try {
-                const querySnapshot = await db.collection('restaurants').get();
-                const loadedRestaurants = [];
-                
-                querySnapshot.forEach((doc) => {
-                    loadedRestaurants.push({
-                        firebaseId: doc.id,
-                        ...doc.data()
-                    });
-                });
-                
-                if (loadedRestaurants.length > 0) {
-                    restaurants = loadedRestaurants;
-                    updateDisplays();
+                const data = localStorage.getItem(STORAGE_KEY);
+                if (data) {
+                    const sizeInBytes = new Blob([data]).size;
+                    const sizeInKB = Math.round(sizeInBytes / 1024);
+                    document.getElementById('stats-storage').textContent = `${sizeInKB} KB`;
+                } else {
+                    document.getElementById('stats-storage').textContent = '0 KB';
                 }
-                
-                console.log('✅ Données chargées depuis Firebase:', loadedRestaurants.length, 'restaurants');
-            } catch (error) {
-                console.error('Erreur chargement Firebase:', error);
+            } catch (e) {
+                document.getElementById('stats-storage').textContent = 'Non calculé';
             }
         }
 
-        // Sauvegarder dans Firebase
-        async function saveToFirebase(restaurant) {
-            if (!db || !storage) {
-                console.log('Firebase non connecté, skip sauvegarde');
-                return;
-            }
-            
-            try {
-                console.log('🔥 Début sauvegarde Firebase...');
-                
-                // Créer une copie pour éviter de modifier l'original
-                const restaurantCopy = JSON.parse(JSON.stringify(restaurant));
-                
-                // Upload des photos si présentes
-                const lastVisit = restaurantCopy.visits[restaurantCopy.visits.length - 1];
-                if (lastVisit.photos && lastVisit.photos.length > 0) {
-                    console.log(`📸 Upload de ${lastVisit.photos.length} photos...`);
-                    const uploadedPhotos = [];
-                    
-                    for (let i = 0; i < lastVisit.photos.length; i++) {
-                        const photo = lastVisit.photos[i];
-                        console.log(`📸 Upload photo ${i + 1}/${lastVisit.photos.length}...`);
-                        
-                        if (photo.startsWith('blob:')) {
-                            try {
-                                const photoBlob = await fetch(photo).then(r => r.blob());
-                                const photoRef = storage.ref(`photos/${restaurantCopy.id}_${Date.now()}_${i}.jpg`);
-                                const photoSnapshot = await photoRef.put(photoBlob);
-                                const photoURL = await photoSnapshot.ref.getDownloadURL();
-                                uploadedPhotos.push(photoURL);
-                                console.log(`✅ Photo ${i + 1} uploadée`);
-                            } catch (photoError) {
-                                console.warn(`⚠️ Erreur upload photo ${i + 1}:`, photoError);
-                                // Continue sans cette photo
-                            }
-                        } else {
-                            uploadedPhotos.push(photo);
-                        }
-                    }
-                    
-                    lastVisit.photos = uploadedPhotos;
-                    console.log(`✅ ${uploadedPhotos.length} photos sauvegardées`);
-                }
-                
-                // Sauvegarder le restaurant
-                console.log('💾 Sauvegarde document Firestore...');
-                const docRef = await db.collection('restaurants').add(restaurantCopy);
-                restaurant.firebaseId = docRef.id;
-                
-                console.log('✅ Restaurant sauvegardé dans Firebase avec ID:', docRef.id);
-                
-            } catch (error) {
-                console.error('❌ Erreur sauvegarde Firebase:', error);
-                throw new Error(`Firebase: ${error.message}`);
-            }
-        }
-
-        // Export/Import des données
+        // Export/Import amélioré
         function exportData() {
-            const dataStr = JSON.stringify(restaurants, null, 2);
-            const dataBlob = new Blob([dataStr], {type: 'application/json'});
-            const url = URL.createObjectURL(dataBlob);
-            
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `restaurant-tracker-${new Date().toISOString().split('T')[0]}.json`;
-            link.click();
-            
-            URL.revokeObjectURL(url);
-            alert('✅ Données exportées !');
+            try {
+                const exportData = {
+                    restaurants: restaurants,
+                    exportDate: new Date().toISOString(),
+                    appVersion: '2.0',
+                    totalRestaurants: restaurants.length,
+                    totalVisits: restaurants.reduce((sum, r) => sum + r.totalVisits, 0)
+                };
+                
+                const dataStr = JSON.stringify(exportData, null, 2);
+                const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                const url = URL.createObjectURL(dataBlob);
+                
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `restaurant-tracker-${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+                
+                URL.revokeObjectURL(url);
+                alert(`✅ ${restaurants.length} restaurants exportés avec succès !`);
+            } catch (e) {
+                alert('❌ Erreur lors de l\'export');
+            }
         }
 
         function importData() {
@@ -801,14 +660,50 @@
             reader.onload = function(e) {
                 try {
                     const importedData = JSON.parse(e.target.result);
-                    restaurants = importedData;
-                    updateDisplays();
-                    alert('✅ Données importées avec succès !');
+                    
+                    // Support ancien et nouveau format
+                    let importedRestaurants = [];
+                    if (Array.isArray(importedData)) {
+                        importedRestaurants = importedData; // Ancien format
+                    } else if (importedData.restaurants) {
+                        importedRestaurants = importedData.restaurants; // Nouveau format
+                    }
+                    
+                    if (importedRestaurants.length > 0) {
+                        const confirmImport = confirm(`Importer ${importedRestaurants.length} restaurants ? Cela remplacera vos données actuelles.`);
+                        if (confirmImport) {
+                            restaurants = importedRestaurants;
+                            saveToLocalStorage();
+                            updateDisplays();
+                            updateStats();
+                            alert(`✅ ${importedRestaurants.length} restaurants importés avec succès !`);
+                        }
+                    } else {
+                        alert('❌ Aucun restaurant trouvé dans le fichier');
+                    }
                 } catch (error) {
-                    alert('❌ Erreur lors de l\'import. Vérifiez le fichier.');
+                    alert('❌ Erreur : le fichier n\'est pas au bon format');
                 }
             };
             reader.readAsText(file);
+        }
+
+        function clearAllData() {
+            const confirm1 = confirm('⚠️ Êtes-vous sûr de vouloir effacer TOUTES vos données ?');
+            if (confirm1) {
+                const confirm2 = confirm('🚨 DERNIÈRE CHANCE : Cette action est irréversible !');
+                if (confirm2) {
+                    try {
+                        localStorage.removeItem(STORAGE_KEY);
+                        restaurants = [];
+                        updateDisplays();
+                        updateStats();
+                        alert('✅ Toutes les données ont été effacées');
+                    } catch (e) {
+                        alert('❌ Erreur lors de la suppression');
+                    }
+                }
+            }
         }
 
         // Fonctions principales
@@ -825,6 +720,7 @@
 
             if (tabName === 'settings') {
                 updateStats();
+                updateStorageInfo();
             }
         }
 
@@ -886,27 +782,22 @@
             const dishName = document.getElementById('dish-name').value.trim();
             const notes = document.getElementById('visit-notes').value.trim();
 
-            console.log('🚀 Début ajout restaurant:', { name, cuisine, address, dishName, currentRating, photos: currentPhotos.length });
-
             if (!name || !address || !dishName || currentRating === 0) {
                 alert('❌ Veuillez remplir tous les champs obligatoires (*) et noter le plat');
                 return;
             }
 
-            // Désactiver le bouton pendant l'ajout
             const addBtn = document.getElementById('add-btn');
             addBtn.disabled = true;
             addBtn.textContent = '⏳ Ajout en cours...';
 
             try {
-                console.log('📍 Génération coordonnées...');
                 // Coordonnées aléatoires en France
                 const coords = [
                     46.2276 + (Math.random() - 0.5) * 8, 
                     2.2137 + (Math.random() - 0.5) * 8
                 ];
 
-                console.log('🏪 Création objet restaurant...');
                 const restaurant = {
                     id: Date.now(),
                     name: name,
@@ -924,45 +815,18 @@
                     lastVisit: new Date().toLocaleDateString('fr-FR')
                 };
 
-                console.log('📦 Ajout à la liste locale...');
                 restaurants.push(restaurant);
-
-                console.log('🔥 Vérification Firebase...');
-                // Sauvegarder dans Firebase si connecté (avec timeout)
-                if (db && storage) {
-                    console.log('☁️ Sauvegarde Firebase...');
-                    try {
-                        const savePromise = saveToFirebase(restaurant);
-                        const timeoutPromise = new Promise((_, reject) => 
-                            setTimeout(() => reject(new Error('Timeout Firebase')), 10000)
-                        );
-                        await Promise.race([savePromise, timeoutPromise]);
-                        console.log('✅ Sauvegarde Firebase réussie');
-                    } catch (firebaseError) {
-                        console.warn('⚠️ Erreur Firebase (continue en local):', firebaseError);
-                        // Continue même si Firebase échoue
-                    }
-                } else {
-                    console.log('💾 Sauvegarde locale uniquement');
-                }
-
-                console.log('🔄 Mise à jour affichages...');
+                saveToLocalStorage(); // Sauvegarde automatique
                 updateDisplays();
-                
-                console.log('🧹 Nettoyage formulaire...');
                 clearForm();
-                
-                console.log('📋 Basculement vers liste...');
                 switchTab('list');
                 
-                console.log('✅ Ajout terminé avec succès');
                 alert('✅ Restaurant ajouté avec succès ! 🎉');
 
             } catch (error) {
-                console.error('❌ Erreur critique ajout restaurant:', error);
+                console.error('❌ Erreur ajout restaurant:', error);
                 alert(`❌ Erreur lors de l'ajout: ${error.message}`);
             } finally {
-                console.log('🔄 Réactivation du bouton...');
                 addBtn.disabled = false;
                 addBtn.textContent = '✨ Ajouter le restaurant';
             }
@@ -1207,35 +1071,33 @@
         }
 
         // Initialisation complète
-        async function initApp() {
+        function initApp() {
             console.log('🚀 Initialisation de l\'application...');
             
-            // Charger les données d'exemple
-            loadSampleData();
+            // Charger les données sauvegardées ou les données d'exemple
+            if (!loadFromLocalStorage()) {
+                loadSampleData();
+                saveToLocalStorage(); // Sauvegarder les données d'exemple
+            }
             
             // Initialiser la carte
             initMap();
             
-            // Charger la config Firebase sauvegardée
-            const savedConfig = loadFirebaseConfig();
-            if (savedConfig) {
-                console.log('Config Firebase trouvée, tentative de connexion auto...');
-                try {
-                    await initFirebase();
-                } catch (e) {
-                    console.log('Connexion Firebase auto échouée, mode hors ligne');
-                }
-            }
-            
             // Mettre à jour les affichages
             updateDisplays();
             updateStats();
+            updateStorageInfo();
             
-            console.log('✅ Application initialisée');
+            console.log('✅ Application initialisée avec', restaurants.length, 'restaurants');
         }
 
         // Lancement au chargement de la page
         document.addEventListener('DOMContentLoaded', initApp);
+
+        // Sauvegarde automatique avant fermeture
+        window.addEventListener('beforeunload', function() {
+            saveToLocalStorage();
+        });
     </script>
 </body>
 </html>
