@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 1rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            background: white;
+            color: #ff6b6b;
+            font-weight: bold;
+            border-bottom: 2px solid #ff6b6b;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 1rem;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-section {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            outline: none;
+            border-color: #ff6b6b;
+        }
+
+        .star-rating {
+            display: flex;
+            gap: 0.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .star {
+            font-size: 1.5rem;
+            color: #ddd;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .star.filled {
+            color: #ffd700;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .restaurant-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .restaurant-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .restaurant-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1rem;
+        }
+
+        .restaurant-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .visit-count {
+            background: #ff6b6b;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+        }
+
+        .dish-item {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            border-left: 4px solid #ff6b6b;
+        }
+
+        .photo-preview {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-top: 0.5rem;
+        }
+
+        .map-placeholder {
+            height: 300px;
+            background: #e9ecef;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 1.1rem;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 15px;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .close {
+            float: right;
+            font-size: 2rem;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🍽️ Restaurant Tracker</h1>
+            <p>Suivez vos découvertes culinaires</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('map')">🗺️ Carte</button>
+            <button class="tab" onclick="switchTab('list')">📋 Liste</button>
+            <button class="tab" onclick="switchTab('add')">➕ Ajouter</button>
+        </div>
+
+        <!-- Onglet Carte -->
+        <div id="map-tab" class="tab-content active">
+            <div class="map-placeholder" id="map-container">
+                <div>
+                    <div>🗺️ Carte des restaurants</div>
+                    <div style="font-size: 0.9rem; margin-top: 0.5rem;">Les restaurants apparaîtront ici une fois ajoutés</div>
+                </div>
+            </div>
+            <div id="map-restaurants"></div>
+        </div>
+
+        <!-- Onglet Liste -->
+        <div id="list-tab" class="tab-content">
+            <div id="restaurant-list"></div>
+        </div>
+
+        <!-- Onglet Ajouter -->
+        <div id="add-tab" class="tab-content">
+            <div class="form-section">
+                <h3 style="margin-bottom: 1rem; color: #333;">🏪 Nouveau Restaurant</h3>
+                
+                <div class="form-group">
+                    <label for="restaurant-name">Nom du restaurant *</label>
+                    <input type="text" id="restaurant-name" placeholder="Ex: Le Petit Bistrot">
+                </div>
+
+                <div class="form-group">
+                    <label for="restaurant-cuisine">Type de cuisine</label>
+                    <select id="restaurant-cuisine">
+                        <option value="">Sélectionner...</option>
+                        <option value="Française">Française</option>
+                        <option value="Italienne">Italienne</option>
+                        <option value="Asiatique">Asiatique</option>
+                        <option value="Mexicaine">Mexicaine</option>
+                        <option value="Indienne">Indienne</option>
+                        <option value="Fast-food">Fast-food</option>
+                        <option value="Autre">Autre</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="restaurant-address">Adresse *</label>
+                    <input type="text" id="restaurant-address" placeholder="123 Rue de la Paix, Paris">
+                </div>
+
+                <h4 style="margin: 1.5rem 0 1rem 0; color: #333;">🍽️ Ajouter un plat</h4>
+
+                <div class="form-group">
+                    <label for="dish-name">Nom du plat *</label>
+                    <input type="text" id="dish-name" placeholder="Ex: Coq au vin">
+                </div>
+
+                <div class="form-group">
+                    <label>Note du plat *</label>
+                    <div class="star-rating" id="dish-rating">
+                        <span class="star" onclick="setRating(1)">⭐</span>
+                        <span class="star" onclick="setRating(2)">⭐</span>
+                        <span class="star" onclick="setRating(3)">⭐</span>
+                        <span class="star" onclick="setRating(4)">⭐</span>
+                        <span class="star" onclick="setRating(5)">⭐</span>
+                    </div>
+                    <div id="rating-text" style="color: #666; font-size: 0.9rem;">Cliquez sur les étoiles pour noter</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="dish-photo">Photo du plat</label>
+                    <input type="file" id="dish-photo" accept="image/*">
+                </div>
+
+                <div class="form-group">
+                    <label for="visit-notes">Notes de visite</label>
+                    <textarea id="visit-notes" rows="3" placeholder="Commentaires sur votre expérience..."></textarea>
+                </div>
+
+                <button class="btn" onclick="addRestaurant()">Ajouter le restaurant</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal pour les détails -->
+    <div id="restaurant-modal" class="modal" onclick="closeModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <div id="modal-content"></div>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let restaurants = [];
+        let currentRating = 0;
+
+        // Données d'exemple
+        function initSampleData() {
+            restaurants = [
+                {
+                    id: 1,
+                    name: "Le Comptoir du Marché",
+                    cuisine: "Française",
+                    address: "Place du Marché, Mont-de-Marsan",
+                    coordinates: [43.8897, -0.4986],
+                    visits: [
+                        {
+                            date: "10/08/2025",
+                            dish: "Magret de canard aux figues",
+                            rating: 5,
+                            photo: null,
+                            notes: "Excellent ! Cuisson parfaite du magret."
+                        },
+                        {
+                            date: "25/07/2025",
+                            dish: "Foie gras poêlé",
+                            rating: 4,
+                            photo: null,
+                            notes: "Très bon, service un peu lent."
+                        }
+                    ],
+                    totalVisits: 2,
+                    lastVisit: "10/08/2025"
+                },
+                {
+                    id: 2,
+                    name: "Sakura Sushi",
+                    cuisine: "Asiatique",
+                    address: "Avenue Foch, Mont-de-Marsan",
+                    coordinates: [43.8850, -0.5025],
+                    visits: [
+                        {
+                            date: "05/08/2025",
+                            dish: "Plateau sashimi",
+                            rating: 4,
+                            photo: null,
+                            notes: "Poisson très frais, présentation soignée."
+                        }
+                    ],
+                    totalVisits: 1,
+                    lastVisit: "05/08/2025"
+                }
+            ];
+        }
+
+        // Gestion des onglets
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            document.getElementById(tabName + '-tab').classList.add('active');
+        }
+
+        // Gestion des étoiles
+        function setRating(rating) {
+            currentRating = rating;
+            updateStarDisplay();
+            document.getElementById('rating-text').textContent = `Note sélectionnée: ${rating}/5`;
+        }
+
+        function updateStarDisplay() {
+            document.querySelectorAll('#dish-rating .star').forEach((star, index) => {
+                if (index < currentRating) {
+                    star.classList.add('filled');
+                } else {
+                    star.classList.remove('filled');
+                }
+            });
+        }
+
+        // Ajouter un restaurant
+        function addRestaurant() {
+            const name = document.getElementById('restaurant-name').value.trim();
+            const cuisine = document.getElementById('restaurant-cuisine').value;
+            const address = document.getElementById('restaurant-address').value.trim();
+            const dishName = document.getElementById('dish-name').value.trim();
+            const photo = document.getElementById('dish-photo').files[0];
+            const notes = document.getElementById('visit-notes').value.trim();
+
+            if (!name || !address || !dishName || currentRating === 0) {
+                alert('Veuillez remplir tous les champs obligatoires (*) et noter le plat');
+                return;
+            }
+
+            // Simuler des coordonnées pour la France
+            const coords = [
+                46.2276 + (Math.random() - 0.5) * 8, 
+                2.2137 + (Math.random() - 0.5) * 8
+            ];
+
+            let photoUrl = null;
+            if (photo) {
+                photoUrl = URL.createObjectURL(photo);
+            }
+
+            const restaurant = {
+                id: Date.now(),
+                name: name,
+                cuisine: cuisine || 'Non spécifié',
+                address: address,
+                coordinates: coords,
+                visits: [{
+                    date: new Date().toLocaleDateString('fr-FR'),
+                    dish: dishName,
+                    rating: currentRating,
+                    photo: photoUrl,
+                    notes: notes
+                }],
+                totalVisits: 1,
+                lastVisit: new Date().toLocaleDateString('fr-FR')
+            };
+
+            restaurants.push(restaurant);
+            updateDisplays();
+            clearForm();
+            switchTab('list');
+            alert('Restaurant ajouté avec succès ! 🎉');
+        }
+
+        // Mettre à jour tous les affichages
+        function updateDisplays() {
+            updateRestaurantList();
+            updateMapDisplay();
+        }
+
+        // Mettre à jour la liste
+        function updateRestaurantList() {
+            const listContainer = document.getElementById('restaurant-list');
+            
+            if (restaurants.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="empty-state">
+                        <p style="font-size: 1.2rem; margin-bottom: 1rem;">🍽️</p>
+                        <p>Aucun restaurant ajouté pour le moment.</p>
+                        <p>Utilisez l'onglet "Ajouter" pour commencer !</p>
+                    </div>
+                `;
+                return;
+            }
+
+            listContainer.innerHTML = restaurants.map(restaurant => {
+                const avgRating = restaurant.visits.reduce((sum, visit) => sum + visit.rating, 0) / restaurant.visits.length;
+                const latestDish = restaurant.visits[restaurant.visits.length - 1];
+                
+                return `
+                    <div class="restaurant-card" onclick="showRestaurantDetails(${restaurant.id})">
+                        <div class="restaurant-header">
+                            <div>
+                                <div class="restaurant-name">${restaurant.name}</div>
+                                <div style="color: #666; font-style: italic;">${restaurant.cuisine}</div>
+                                <div style="color: #666; font-size: 0.9rem;">📍 ${restaurant.address}</div>
+                            </div>
+                            <div class="visit-count">${restaurant.totalVisits} visite(s)</div>
+                        </div>
+                        
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            ${'⭐'.repeat(Math.round(avgRating))}
+                            <span style="color: #666;">(${avgRating.toFixed(1)}/5)</span>
+                        </div>
+                        
+                        <div style="color: #28a745; font-weight: bold; font-size: 0.9rem;">
+                            Dernière visite: ${restaurant.lastVisit}
+                        </div>
+                        
+                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
+                            <strong>Dernier plat:</strong> ${latestDish.dish}
+                            ${latestDish.photo ? `<img src="${latestDish.photo}" class="photo-preview" alt="Photo du plat" style="margin-left: 1rem;">` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Mettre à jour l'affichage de la carte
+        function updateMapDisplay() {
+            const mapContainer = document.getElementById('map-restaurants');
+            
+            if (restaurants.length === 0) {
+                mapContainer.innerHTML = '';
+                return;
+            }
+
+            mapContainer.innerHTML = `
+                <div style="background: white; padding: 1rem; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <h3 style="margin-bottom: 1rem;">📍 Restaurants sur la carte</h3>
+                    ${restaurants.map(restaurant => {
+                        const avgRating = restaurant.visits.reduce((sum, visit) => sum + visit.rating, 0) / restaurant.visits.length;
+                        return `
+                            <div class="restaurant-card" onclick="showRestaurantDetails(${restaurant.id})" style="margin-bottom: 0.5rem; padding: 1rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <strong>${restaurant.name}</strong>
+                                        <div style="color: #666; font-size: 0.9rem;">${restaurant.address}</div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div>${'⭐'.repeat(Math.round(avgRating))}</div>
+                                        <div style="font-size: 0.8rem; color: #666;">${restaurant.totalVisits} visite(s)</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        // Afficher les détails d'un restaurant
+        function showRestaurantDetails(restaurantId) {
+            const restaurant = restaurants.find(r => r.id === restaurantId);
+            if (!restaurant) return;
+
+            const avgRating = restaurant.visits.reduce((sum, visit) => sum + visit.rating, 0) / restaurant.visits.length;
+            
+            let modalHTML = `
+                <h2>${restaurant.name}</h2>
+                <p><strong>Cuisine:</strong> ${restaurant.cuisine}</p>
+                <p><strong>Adresse:</strong> ${restaurant.address}</p>
+                <p><strong>Visites totales:</strong> ${restaurant.totalVisits}</p>
+                <p><strong>Note moyenne:</strong> ${'⭐'.repeat(Math.round(avgRating))} (${avgRating.toFixed(1)}/5)</p>
+                <p><strong>Dernière visite:</strong> ${restaurant.lastVisit}</p>
+                
+                <h3 style="margin-top: 1.5rem; margin-bottom: 1rem;">🍽️ Historique des plats</h3>
+            `;
+
+            restaurant.visits.forEach(visit => {
+                modalHTML += `
+                    <div class="dish-item">
+                        <div style="font-weight: bold; margin-bottom: 0.25rem;">${visit.dish}</div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                            ${'⭐'.repeat(visit.rating)}
+                            <span style="color: #666;">(${visit.rating}/5)</span>
+                        </div>
+                        <div style="color: #666; font-size: 0.9rem;">📅 ${visit.date}</div>
+                        ${visit.photo ? `<img src="${visit.photo}" class="photo-preview" alt="Photo du plat">` : ''}
+                        ${visit.notes ? `<p style="margin-top: 0.5rem; font-style: italic;">"${visit.notes}"</p>` : ''}
+                    </div>
+                `;
+            });
+
+            document.getElementById('modal-content').innerHTML = modalHTML;
+            document.getElementById('restaurant-modal').style.display = 'block';
+        }
+
+        // Fermer la modal
+        function closeModal() {
+            document.getElementById('restaurant-modal').style.display = 'none';
+        }
+
+        // Vider le formulaire
+        function clearForm() {
+            document.getElementById('restaurant-name').value = '';
+            document.getElementById('restaurant-cuisine').value = '';
+            document.getElementById('restaurant-address').value = '';
+            document.getElementById('dish-name').value = '';
+            document.getElementById('dish-photo').value = '';
+            document.getElementById('visit-notes').value = '';
+            currentRating = 0;
+            updateStarDisplay();
+            document.getElementById('rating-text').textContent = 'Cliquez sur les étoiles pour noter';
+        }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('App initialisée');
+            initSampleData();
+            updateDisplays();
+        });
+    </script>
+</body>
+</html>
